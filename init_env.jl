@@ -9,7 +9,7 @@ if !(MODULES_PATH in LOAD_PATH)
     push!(LOAD_PATH, MODULES_PATH)
 end
 
-include(MODULES_PATH*"TrainingUtils.jl")
+include(MODULES_PATH*"TrainUtils.jl")
 include(MODULES_PATH*"ModelUtils.jl")
 include(MODULES_PATH*"DataUtils.jl")
 include(MODULES_PATH*"FileManagement.jl")

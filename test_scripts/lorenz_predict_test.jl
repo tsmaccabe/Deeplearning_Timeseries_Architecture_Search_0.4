@@ -8,7 +8,7 @@ function main()
 
     num_nodes = 30
     in_shapes = [(num_nodes,)]; out_shapes = [(num_nodes,)]
-    num_samples = 1000
+    num_samples = 100
 
     data_dict = pair_data(u, 10, num_samples, num_nodes, 1)
     x = data_dict["x"]; y = data_dict["y"]
@@ -18,17 +18,13 @@ function main()
     train_samples = size(data[1], length(axes(data[1])))
     test_samples = num_samples - train_samples
 
-    max_epochs_train = 5
-    learn_rate_params = (100, 0.05f0, 0.005f0)
-    regularization_param = 0.01f0
-
     loss = Flux.mae
-    reg = (model) -> regularization_functions[:l1](model, regularization_param)
-    learn_rate = (epoch) -> learn_rate_functions[:linear](epoch, learn_rate_params...)
-    train_stopper = (losses_test, losses_train) -> train_stopper_functions[:epochs_max](losses_test, losses_train, max_epochs_train)
-        
-    train_sequence = [TrainingArgs(test_samples, 0.1f0, loss, learn_rate, reg, train_stopper) for _ in 1:1]
-    num_trials = 2
+	λ = RegularizationFunction(:l1, 0.1f0)
+	η = LearnRateFunction(:linear, 5, 0.01f0, 0.002f0)
+	train_stop = TrainStopFunction(:epochs_max, 3)
+
+    train_sequence = [TrainingArgs((test_samples, 0.1f0, loss, η, λ, train_stop)) for _ in 1:1]
+    num_trials = 1
 
     format = :fixed
     space = [[1, 2, 3], [5, 6, 7], [Flux.relu, Flux.leakyrelu]]
@@ -38,10 +34,10 @@ function main()
     objective = backprop_objective_generator(data, train_sequence, num_trials)
     shift = ShiftFunction(length(space), Exponential(1.), 1.)
 
-    stopper_args = StopperArgs(:epochs_max, 7)
-    cooling_args = CoolingArgs(:exp, 10, 0.5, 0.01)
+	search_stopper = SearchStopFunction(:epochs_max, 5)
+	cooling = CoolingFunction(:exp, 10, 0.5, 0.01)
 
-    search_args = SearchArgs(objective, shift, stopper_args, cooling_args)
+    search_args = SearchArgs((objective, shift, search_stopper, cooling) )
         
     best_cost, models = annealing(architecture, search_args, false)
 

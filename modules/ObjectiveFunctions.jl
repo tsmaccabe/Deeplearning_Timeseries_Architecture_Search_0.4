@@ -15,9 +15,8 @@ end
 function backprop_trials(architecture::Architecture, data::NTuple{4, Array{Float32}}, train_args::Vector{TrainingArgs}, num_trials::Integer, keep_models::Bool=false)
 	losses_test = zeros(Float32, num_trials)
 	models = keep_models ? Vector{Chain}([]) : nothing
-	init_time = now()
 	for trials_losses_index in 1:num_trials
-		println(Crayon(foreground = :red), "Trial ", trials_losses_index, " | $(now()-init_time)", Crayon(foreground = :default))
+		println(Crayon(foreground = :red), "Trial ", trials_losses_index, Crayon(foreground = :default))
 		loss_test, _, model = train_sequence(architecture(), data, train_args, keep_models)
 		losses_test[trials_losses_index] = loss_test[end]
 		if keep_models push!(models, model) end
@@ -26,7 +25,7 @@ function backprop_trials(architecture::Architecture, data::NTuple{4, Array{Float
 	return mean(losses_test), models
 end
 
-backprop_objective_generator(data, train_args, num_trials) = ObjectiveFunction(backprop_trials, (data, train_args, num_trials))
+backprop_objective_function(data, train_args, num_trials) = ObjectiveFunction(backprop_trials, (data, train_args, num_trials))
 
 function TEST_ObjectiveFunction()
 	in_shapes = [(6,)]; out_shapes = [(6,)]

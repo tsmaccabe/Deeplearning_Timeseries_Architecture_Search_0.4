@@ -1,7 +1,7 @@
 using Dates: now
 using Crayons
 
-TESTS = true
+TESTS = false
 
 # Cooling schedule functions
 linear_decay(i::Integer, epochs::Integer, yi = 10.0f0^-3.0f0, yf = 10.0f0^-4.0f0) = max(((yf - yi) / epochs) * i + yi, yf)
@@ -77,9 +77,9 @@ function annealing(architecture::Architecture, search_args::SearchArgs, save_mod
 		neighbor = deepcopy(architecture)
 		shift_indices!(shift, neighbor)
 
-		println(Crayon(foreground = :cyan), "Search epoch $(epoch) | Temperature = $(temperature) | Elapsed Time $(now()-init_time)", Crayon(foreground = :default))
+		println(Crayon(foreground = :cyan), "Search epoch $(epoch) | Temperature = $(temperature) | Total Time $(now()-init_time)", Crayon(foreground = :default))
 		if haskey(cost_cache, neighbor.parameters.index)
-			println("            Architecture $(index(neighbor)) Already computed")
+			println("Architecture $(index(neighbor)) Already computed")
 			cost_neighbor = cost_cache[neighbor.parameters.index]
 		else
 			println("Training an Architecture $(index(neighbor)) model")
@@ -98,7 +98,7 @@ function annealing(architecture::Architecture, search_args::SearchArgs, save_mod
 			if current_cost < best_cost
 				best_cost = current_cost
 			end
-			println("     Accepted new solution $(index(architecture_new)) with cost: $(current_cost) | Best cost: $(best_cost)")
+			println("Accepted new solution $(index(architecture_new)) with cost: $(current_cost) | Best cost: $(best_cost)")
 		else
 			architecture_new = architecture
 			println("Kept the existing solution $(index(architecture_new)) with cost: $(current_cost) | Best cost: $(best_cost) | Neighbor cost: $(cost_neighbor)")
@@ -129,13 +129,13 @@ function TEST_annealing()
 	symbols = [:length, :width, :activation]
 
 	architecture = Architecture(space, symbols, format, in_shapes, out_shapes)
-	objective = backprop_objective_generator(data, train_sequence, num_trials)
+	objective = backprop_objective_function(data, train_sequence, num_trials)
 	shift = ShiftFunction(length(space), Exponential(1.0), 1.0)
 
-	stopper_args = SearchStopFunction(:epochs_max, 5)
-	cooling_args = CoolingFunction(:exp, 10, 0.5, 0.01)
+	search_stopper = SearchStopFunction(:epochs_max, 5)
+	cooling = CoolingFunction(:exp, 10, 0.5, 0.01)
 
-	search_args = SearchArgs((objective, shift, stopper_args, cooling_args))
+	search_args = SearchArgs((objective, shift, search_stopper, cooling))
 
 	best_cost, models = annealing(architecture, search_args, false)
 

@@ -17,8 +17,8 @@ struct ShiftFunction <: Function
 	decay::Distribution
 	direction::Function
 	radial_scale::Number
-	function ShiftFunction(dimensions::Int, radial_decay::Distribution, radial_scale::Number)
-		direction_fcn = (num_directions) -> uniform_directions(dimensions, num_directions)
+	function ShiftFunction(numeric_dimensions::Int, radial_decay::Distribution, radial_scale::Number)
+		direction_fcn = (num_directions) -> uniform_directions(numeric_dimensions, num_directions)
 		return new(radial_decay, direction_fcn, radial_scale)
 	end
 end

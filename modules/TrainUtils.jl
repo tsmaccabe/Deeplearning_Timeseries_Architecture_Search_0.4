@@ -1,4 +1,5 @@
 using CUDA, Optimisers, Flux, Printf
+using Dates: now
 
 active_device = CUDA.functional() ? gpu : cpu
 
@@ -108,6 +109,8 @@ function train_loop!(model::Chain, dataset::NTuple{4, Array{Float32}}, p_train::
 	n_test_samples = axes(test_data)[end][end]
 	r_train_test = n_train_samples / n_test_samples
 
+	init_time = now()
+
 	opt = Flux.setup(Optimisers.Adam(), model)
 	set_dropout_rate!(model, drop_rate)
 
@@ -161,7 +164,7 @@ function train_loop!(model::Chain, dataset::NTuple{4, Array{Float32}}, p_train::
 	end
 
 	formatted_output = @sprintf("epochs = %d | Train Loss = %.6f, Test Loss = %.6f", epoch, L_train[end], L_test[end])
-	println(formatted_output)
+	println(formatted_output, " | Training Time $(init_time - now())")
 
 	if best_params !== nothing
 		Flux.loadparams!(model, best_params)
