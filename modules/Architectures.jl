@@ -1,5 +1,7 @@
 import Base: setindex!
 
+abstract type AbstractArchitecture end
+
 TESTS = true
 
 struct Profile
@@ -9,14 +11,21 @@ struct Profile
 end
 (profile::Profile)(param_values) = profile.format(profile.in_shapes, profile.out_shapes, param_values)
 
-mutable struct Architecture
-    key::String
+function make_key(profile::Profile)
+    in_shapes_str = join([join(shape, ", ") for shape in profile.in_shapes], "; ")
+    out_shapes_str = join([join(shape, ", ") for shape in profile.out_shapes], "; ")
+    
+    return Symbol("format: $(profile.format), in_shapes: [$(in_shapes_str)], out_shapes: [$(out_shapes_str)]")
+end
+
+mutable struct Architecture <: AbstractArchitecture
+    key::Symbol
     parameters::Parametrizer
     profile::Profile
     function Architecture(param_space, param_symbols, format_key, in_shapes, out_shapes)
         format = model_formats[format_key]
         profile = Profile(format, in_shapes, out_shapes)
-        key = string(profile)
+        key = make_key(profile)
         parameters = Parametrizer(param_space, param_symbols)
         return new(key, parameters, profile)
     end
@@ -38,15 +47,34 @@ function shift_indices!(shift_function::ShiftFunction, architectures::Vector{Arc
     shift_indices!(shift_function, [architecture.parameters for architecture in architectures])
 end
 
+mutable struct CompositeArchitecture <: AbstractArchitecture
+    key::String
+    architectures::Dict{String, AbstractArchitecture} # Maps each component architecture's key to the architecture itself
+    execution_layers::Vector{Vector{Symbol}}
+    parameters::Parametrizer
+    profile::Profile
+    function CompositeArchitecture(architectures_list::Vector{AbstractArchitecture}, execution_order::Vector{Vector{Integer}})
+        architectures = Dict([architecture.key => architecture for architecture in architectures_list])
+
+        execution_layers = [[architecture.key for architecture in architectures[layer_architecture_indices]] for layer_architecture_indices in execution_order]
+
+
+        key = make_key(profile)
+        parameters = Parametrizer([architecture.parametrizer for architecture in architectures_list])
+        return new(key, architectures, execution_layers, parameters, profile)
+    end
+end
+
 function TEST_Architecture()
-    format = :fixed; in_shapes = [(50, 1)]; out_shapes = [(50, 1)]
+    format = :fixed; in_shapes = [(50, 1), (50, 1)]; out_shapes = [(50, 1), (50, 1)]
     space = [[1, 2, 3], [1, 2, 3], [Flux.mae, Flux.mse]]
     symbols = [:length, :width, :activation]
     test_Architecture = Architecture(space, symbols, format, in_shapes, out_shapes)
-    @assert test_Architecture.key == string(Profile(model_formats[format], in_shapes, out_shapes))
-    return true
+    @assert test_Architecture.key == make_key(Profile(model_formats[format], in_shapes, out_shapes))
+    return test_Architecture
 end
 
 if TESTS
-    @assert TEST_Architecture()
+    test_Architecture = TEST_Architecture()
+    println(test_Architecture.key)
 end

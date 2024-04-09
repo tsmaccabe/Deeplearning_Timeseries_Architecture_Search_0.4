@@ -82,7 +82,7 @@ function annealing(architecture::Architecture, search_args::SearchArgs, save_mod
 			println("Architecture $(index(neighbor)) Already computed")
 			cost_neighbor = cost_cache[neighbor.parameters.index]
 		else
-			println("Training an Architecture $(index(neighbor)) model")
+			println(Crayon(foreground = :red), "Training an Architecture $(index(neighbor)) model", Crayon(foreground = :default))
 			cost_neighbor, trial_models = objective(neighbor)
 			if save_models
 				append!(models, trial_models)

@@ -101,7 +101,7 @@ TrainingArgs = @NamedTuple begin
 	stop::TrainStopFunction
 end
 
-function train_loop!(model::Chain, dataset::NTuple{4, Array{Float32}}, p_train::TrainingArgs)
+function train_loop!(model::Chain, dataset::NTuple{4, Array{Float32}}, p_train::TrainingArgs; print_epochs::Integer = 5)
 	(batch_size, drop_rate, loss, η, λ, stop) = (p_train.batch_size, p_train.drop_rate, p_train.loss, p_train.η, p_train.λ, p_train.stop)
 	(data, targets, test_data, test_targets) = (dataset...,)
 
@@ -114,7 +114,7 @@ function train_loop!(model::Chain, dataset::NTuple{4, Array{Float32}}, p_train::
 	opt = Flux.setup(Optimisers.Adam(), model)
 	set_dropout_rate!(model, drop_rate)
 
-	loss_regularized(m, x, y) = loss(m(x), y) + λ(m)
+	loss_regularized(m, x, y) = (loss(m(x), y) + λ(m))
 
 	L_test = Float32[]
 	L_train = Float32[]
@@ -161,10 +161,15 @@ function train_loop!(model::Chain, dataset::NTuple{4, Array{Float32}}, p_train::
 			best_test_loss = current_test_loss
 			best_params = Flux.params(model)
 		end
+		
+		if epoch % print_epochs == 0
+			formatted_output = @sprintf("Training Epoch = %d | Train Loss = %.6f, Test Loss = %.6f", epoch, L_train[end], L_test[end])
+			println(formatted_output, " | Training Time $(now() - init_time)")
+		end
 	end
 
-	formatted_output = @sprintf("epochs = %d | Train Loss = %.6f, Test Loss = %.6f", epoch, L_train[end], L_test[end])
-	println(formatted_output, " | Training Time $(init_time - now())")
+	formatted_output = @sprintf("Final Training Epoch = %d | Train Loss = %.6f, Test Loss = %.6f", epoch, L_train[end], L_test[end])
+	println(formatted_output, " | Training Time $(now() - init_time)")
 
 	if best_params !== nothing
 		Flux.loadparams!(model, best_params)

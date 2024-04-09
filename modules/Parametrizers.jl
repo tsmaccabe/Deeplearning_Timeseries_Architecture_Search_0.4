@@ -11,7 +11,7 @@ struct FunctionParameter <: Function
 	f::Function
 	function FunctionParameter(f::T) where T <: Function
 		if T == FunctionParameter
-			return new(f.f) 
+			return new(f.f)
 		else
 			return new(f)
 		end
@@ -66,7 +66,7 @@ mutable struct SingleParametrizer{T} <: AbstractParametrizer
 end
 length(parametrizer::SingleParametrizer)::Int = length(parametrizer.index)
 values(parametrizer::SingleParametrizer{T}) where T = parametrizer.values::Vector{T}
-space(parametrizer::SingleParametrizer{T}) where T = parametrizer.space::Vector{Vector{T}}
+get_space(parametrizer::SingleParametrizer{T}) where T = parametrizer.space::Vector{Vector{T}}
 
 function setindex!(parametrizer::SingleParametrizer{T}, new_index::Vector{Int}) where T
 	parametrizer.index = [mod(index_dimension + 1, length(domain)) + 1 for (index_dimension, domain) in zip(new_index, parametrizer.space)]
@@ -106,6 +106,9 @@ mutable struct Parametrizer <: AbstractParametrizer
 		if length(space) != length(symbols)
 			throw(ArgumentError("the space vector and symbols vector must be the same length."))
 		end
+		if symbols != unique(symbols)
+			throw(ArgumentError("each symbol in symbols must be unique."))
+		end
 		types = unique([parent_type(domain) for domain in space])
 		single_parametrizers = SingleParametrizer[]
 		for type in types
@@ -121,10 +124,16 @@ mutable struct Parametrizer <: AbstractParametrizer
 end
 length(parametrizer::Parametrizer) = sum([length(single.index) for single in parametrizer.single_types])
 values(parametrizer::Parametrizer)::Vector = vcat([values(single) for single in parametrizer.single_types]...)
-function space(parametrizer::Parametrizer)::Vector{Vector}
+function get_space(parametrizer::Parametrizer)::Vector{Vector}
 	space = [Vector{single.type}(domain) for single in parametrizer.single_types for domain in single.space]
 	common_type = typejoin([parent_type(domain) for domain in space]...)
 	return Vector{Vector{<:common_type}}(space)
+end
+
+function Parametrizer(parametrizers::Vector{Parametrizer})
+	space = [domain for parametrizer in parametrizers for domain in get_space(parametrizer)]
+	symbols = [symbol for parametrizer in parametrizers for symbol in parametrizer.symbols]
+	return Parametrizer(space, symbols)
 end
 
 function setindex!(parametrizer::Parametrizer, new_index::Vector{Int})
@@ -140,15 +149,20 @@ function setindex!(parametrizer::Parametrizer, new_index::Vector{Int})
 end
 
 function TEST_Parametrizer()
-	test_Parametrizer = Parametrizer([["1", "2", "3"], ["1", "2", "3"], [:a3, :a45], [1, 2], [() -> 1.0, () -> 2.0]], [:I1, :I2, :I3, :I4, :I5])
-	@assert length(test_Parametrizer.index) == length(values(test_Parametrizer)) == length(space(test_Parametrizer)) == length(test_Parametrizer)
-	test_Parametrizer = Parametrizer([["1", "2", "3"], ["1", "2", "3"], [:a3, :a45], [1, 2], FunctionParameter.([() -> 1.0, () -> 2.0])], [:I1, :I2, :I3, :I4, :I5])
-	@assert length(test_Parametrizer.index) == length(values(test_Parametrizer)) == length(space(test_Parametrizer)) == length(test_Parametrizer)
+	test_Parametrizer = Parametrizer([["1", "2", "3"], ["1", "2", "3"], [:a3, :a45], [1, 2], [() -> 1.0, () -> 2.0]], [:I11, :I21, :I31, :I41, :I51])
+	@assert length(test_Parametrizer.index) == length(values(test_Parametrizer)) == length(get_space(test_Parametrizer)) == length(test_Parametrizer)
+	test_Parametrizer = Parametrizer([["1", "2", "3"], ["1", "2", "3"], [:a3, :a45], [1, 2], FunctionParameter.([() -> 1.0, () -> 2.0])], [:I11, :I21, :I31, :I41, :I51])
+	@assert length(test_Parametrizer.index) == length(values(test_Parametrizer)) == length(get_space(test_Parametrizer)) == length(test_Parametrizer)
 	test_Parametrizer_2 = deepcopy(test_Parametrizer)
 	setindex!(test_Parametrizer_2, test_Parametrizer.index + ones(Int, length(test_Parametrizer)))
 	setindex!(test_Parametrizer, test_Parametrizer.index + ones(Int, length(test_Parametrizer)))
 	@assert test_Parametrizer_2.index == test_Parametrizer.index
-	@assert values(test_Parametrizer) == values(space(test_Parametrizer), test_Parametrizer.index)
+	@assert values(test_Parametrizer) == values(get_space(test_Parametrizer), test_Parametrizer.index)
+
+	test_Parametrizer_2 = Parametrizer([["1", "2", "3"], ["1", "2", "3"], [:a3, :a45], [1, 2], FunctionParameter.([() -> 1.0, () -> 2.0])], [:I12, :I22, :I32, :I42, :I52])
+	test_parametrizer_3 = Parametrizer([test_Parametrizer, test_Parametrizer_2])
+	println(test_parametrizer_3)
+
 	try
 		Parametrizer([["1", "2", "3"], ["1", "2", "3"], [:a3, :a45], [1, 2], FunctionParameter.([() -> 1.0, () -> 2.0])], [:I1, :I2, :I3, :I4])
 		@assert false
