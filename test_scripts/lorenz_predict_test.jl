@@ -1,7 +1,7 @@
 include(MODULES_PATH*"CreateLorenzData.jl")
 
 function main()
-    num_timesteps = 120000
+    num_timesteps = 12000
     save_lorenz(DATA_RAW_DIR, num_timesteps, num_timesteps)
     data_raw = load_lorenz(1, num_timesteps)[1]
     u = data_raw["u"]
@@ -9,7 +9,7 @@ function main()
     sample_timesteps = 5
     num_nodes = 3*sample_timesteps
     in_shapes = [(num_nodes,)]; out_shapes = [(num_nodes,)]
-    num_samples = 100000
+    num_samples = 10000
 
     data_dict = pair_data(u, 1, num_samples, num_nodes, 1)
     x = data_dict["x"]; y = data_dict["y"]
@@ -24,7 +24,8 @@ function main()
 	η = LearnRateFunction(:linear, 5, 0.01f0, 0.002f0)
 	train_stop = TrainStopFunction(:epochs_stagnant, 3)
 
-    train_sequence = [TrainingArgs((test_samples, 0.1f0, loss, η, λ, train_stop)) for _ in 1:1]
+    batch_size = 128
+    train_sequence = [TrainingArgs((batch_size, 0.1f0, loss, η, λ, train_stop)) for _ in 1:1]
     num_trials = 2
 
     format = :fixed

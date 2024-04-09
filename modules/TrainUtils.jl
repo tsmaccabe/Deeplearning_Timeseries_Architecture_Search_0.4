@@ -8,7 +8,7 @@ linear_decay(i::Integer, epochs::Integer, yi = 10.0f0^-3.0f0, yf = 10.0f0^-4.0f0
 exp_decay(i::Integer, epochs::Integer, yi = 10.0f0^-3.0f0, yf = 10.0f0^-4.0f0) = max((yi - yf) * exp((yf - yi) * i / epochs) + yf, yf)
 
 # Regularization functions
-l1_regularization(layers, λ = 0.001f0) = λ * sum(sum(abs, p) for l in layers for p in Flux.params(l))
+#l1_regularization(layers, λ = 0.001f0) = λ * sum(abs, p) for p in Flux.params(layers)
 l2_regularization(layers, λ = 0.0001f0) = λ * sum(sum(p .^ 2) for l in layers for p in Flux.params(l))
 
 # Stopper functions
@@ -103,8 +103,7 @@ end
 
 function train_loop!(model::Chain, dataset::NTuple{4, Array{Float32}}, p_train::TrainingArgs; print_epochs::Integer = 5)
 	(batch_size, drop_rate, loss, η, λ, stop) = (p_train.batch_size, p_train.drop_rate, p_train.loss, p_train.η, p_train.λ, p_train.stop)
-	(data, targets, test_data, test_targets) = (dataset...,)
-
+	(data, targets, test_data, test_targets) = (dataset...,) |> active_device
 	n_train_samples = axes(data)[end][end]
 	n_test_samples = axes(test_data)[end][end]
 	r_train_test = n_train_samples / n_test_samples
@@ -114,23 +113,22 @@ function train_loop!(model::Chain, dataset::NTuple{4, Array{Float32}}, p_train::
 	opt = Flux.setup(Optimisers.Adam(), model)
 	set_dropout_rate!(model, drop_rate)
 
-	loss_regularized(m, x, y) = (loss(m(x), y) + λ(m))
+	loss_regularized(m, x, y) = loss(m(x), y)
 
 	L_test = Float32[]
 	L_train = Float32[]
 	epoch = 0
 	best_test_loss = Inf32
 	best_params = nothing
+	train_loader = Flux.DataLoader((data, targets), batchsize = batch_size, shuffle = true)
+	test_loader = Flux.DataLoader((test_data, test_targets), batchsize = batch_size, shuffle = true)
 	while !stop(L_train, L_test)
 		epoch += 1
 		Optimisers.adjust!(opt, η(epoch))
 
 		# Perform backpropagation
-		train_loader = Flux.DataLoader((data, targets), batchsize = batch_size, shuffle = true)
-		current_train_loss_gpu = 0.0f0 |> active_device
+		current_train_loss_gpu = 0.0f0
 		for (x_batch, y_batch) in train_loader
-			x_batch = x_batch |> active_device
-			y_batch = y_batch |> active_device
 
 			grad = gradient(loss_regularized, model, x_batch, y_batch)[1]
 			Flux.Optimise.update!(opt, model, grad)
@@ -142,15 +140,10 @@ function train_loop!(model::Chain, dataset::NTuple{4, Array{Float32}}, p_train::
 		current_train_loss = current_train_loss_gpu |> cpu
 
 		# Calculate test loss
-		test_loader = Flux.DataLoader((test_data, test_targets), batchsize = batch_size, shuffle = true)
-		current_test_loss_gpu = 0.0f0 |> active_device
+		current_test_loss_gpu = 0.0f0
+		Flux.testmode!(model)
 		for (x_batch, y_batch) in test_loader
-			x_batch = x_batch |> active_device
-			y_batch = y_batch |> active_device
-
-			Flux.testmode!(model)
 			current_test_loss_gpu += loss_regularized(model, x_batch, y_batch)
-			Flux.trainmode!(model)
 		end
 		current_test_loss = (current_test_loss_gpu * r_train_test) |> cpu
 
@@ -166,6 +159,8 @@ function train_loop!(model::Chain, dataset::NTuple{4, Array{Float32}}, p_train::
 			formatted_output = @sprintf("Training Epoch = %d | Train Loss = %.6f, Test Loss = %.6f", epoch, L_train[end], L_test[end])
 			println(formatted_output, " | Training Time $(now() - init_time)")
 		end
+
+		CUDA.reclaim()
 	end
 
 	formatted_output = @sprintf("Final Training Epoch = %d | Train Loss = %.6f, Test Loss = %.6f", epoch, L_train[end], L_test[end])
@@ -203,6 +198,7 @@ function train_sequence_gpu(model_cpu::Chain, data, subsequences::Vector{Trainin
 		L_train = vcat(L_train, L_train_this)
 	end
 	model_cpu = keep_models ? model |> cpu : nothing
+	CUDA.reclaim()
 	return L_test, L_train, model_cpu
 end
 function train_sequence(model, data, subsequences, keep_models::Bool = false)
