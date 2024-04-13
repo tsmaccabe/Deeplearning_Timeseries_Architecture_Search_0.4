@@ -25,9 +25,15 @@ end
 (shift_function::ShiftFunction)() :: Vector{T} where T = round.(Int, shift_function.radial_scale * rand(shift_function.decay) * shift_function.direction(1))[:, 1]
 #(shift_function::ShiftFunction)(parametrizers::Vector{Parametrizer}) = shift_function(length(parametrizers[1].index))
 function shift_indices!(shift_function::ShiftFunction, parametrizers::Vector{Parametrizer})
+    shift = zeros(length(parametrizers))
     for parametrizer in parametrizers
+        shift = shift_function()
+        while all([elem == 0 for elem in shift])
+            shift = shift_function()
+        end
         setindex!(parametrizer, parametrizer.index + shift_function())
     end
+    return shift
 end
 
 function TEST_ShiftFunction(dimensions::Integer=15, num_parametrizers::Integer=5)

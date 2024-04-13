@@ -55,7 +55,7 @@ SearchArgs = @NamedTuple begin
 	cooling::CoolingFunction
 end
 
-function annealing(architecture::Architecture, search_args::SearchArgs, save_models::Bool = false)
+function annealing(initial_architecture::Architecture, search_args::SearchArgs, save_models::Bool = false)
 	P(change, temperature) = exp(-change / temperature)
 
 	stop = search_args.stop
@@ -65,8 +65,12 @@ function annealing(architecture::Architecture, search_args::SearchArgs, save_mod
 
 	cost_cache = Dict{Vector{Int64}, Float32}()
 
+	architecture = deepcopy(initial_architecture)
+
 	init_time = now()
 	current_cost, models = objective(architecture)
+
+	architecture = deepcopy(initial_architecture)
 
 	best_cost = current_cost
 	epoch = 0
@@ -75,14 +79,14 @@ function annealing(architecture::Architecture, search_args::SearchArgs, save_mod
 		temperature = temperature_schedule(epoch)
 
 		neighbor = deepcopy(architecture)
-		shift_indices!(shift, neighbor)
+		shift_this_epoch = shift_indices!(shift, neighbor)
 
-		println(Crayon(foreground = :cyan), "Search epoch $(epoch) | Temperature = $(temperature) | Total Time $(now()-init_time)", Crayon(foreground = :default))
+		println(Crayon(foreground = :cyan), "Search epoch $(epoch) | Shift $(shift_this_epoch) | Temperature = $(temperature) | Total Time $(now()-init_time)", Crayon(foreground = :default))
 		if haskey(cost_cache, neighbor.parameters.index)
-			println("Architecture $(index(neighbor)) Already computed")
+			println("Architecture $(values(neighbor)) Already computed")
 			cost_neighbor = cost_cache[neighbor.parameters.index]
 		else
-			println(Crayon(foreground = :red), "Training an Architecture $(index(neighbor)) model", Crayon(foreground = :default))
+			println(Crayon(foreground = :red), "Training an Architecture $(values(neighbor)) model", Crayon(foreground = :default))
 			cost_neighbor, trial_models = objective(neighbor)
 			if save_models
 				append!(models, trial_models)
@@ -93,15 +97,14 @@ function annealing(architecture::Architecture, search_args::SearchArgs, save_mod
 		delta = cost_neighbor - current_cost
 
 		if (delta < 0) | (P(delta, temperature) > rand())
-			architecture_new = neighbor
+			architecture = neighbor
 			current_cost = cost_neighbor
 			if current_cost < best_cost
 				best_cost = current_cost
 			end
-			println("Accepted new solution $(index(architecture_new)) with cost: $(current_cost) | Best cost: $(best_cost)")
+			println(Crayon(foreground = :green), "Accepted new solution $(values(architecture)) with cost: $(current_cost) | Best cost: $(best_cost)", Crayon(foreground = :default))
 		else
-			architecture_new = architecture
-			println("Kept the existing solution $(index(architecture_new)) with cost: $(current_cost) | Best cost: $(best_cost) | Neighbor cost: $(cost_neighbor)")
+			println(Crayon(foreground = :green), "Kept the existing solution $(values(architecture)) with cost: $(current_cost) | Best cost: $(best_cost) | Neighbor cost: $(cost_neighbor)", Crayon(foreground = :default))
 		end
 	end
 
