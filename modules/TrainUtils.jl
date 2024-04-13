@@ -25,7 +25,8 @@ learn_rate_functions = Dict(
 	:exp => exp_decay,
 )
 regularization_functions = Dict(
-	:l1 => l1_regularization,
+	:none => ()->nothing,
+	#:l1 => l1_regularization,
 	:l2 => l2_regularization,
 )
 train_stopper_functions = Dict(
@@ -101,7 +102,7 @@ TrainingArgs = @NamedTuple begin
 	stop::TrainStopFunction
 end
 
-function train_loop!(model::Chain, dataset::NTuple{4, Array{Float32}}, p_train::TrainingArgs; print_epochs::Integer = 5)
+function train_loop!(model::Chain, dataset::NTuple{4, Array{Float32}}, p_train::TrainingArgs; print_epochs::Integer = 50)
 	(batch_size, drop_rate, loss, η, λ, stop) = (p_train.batch_size, p_train.drop_rate, p_train.loss, p_train.η, p_train.λ, p_train.stop)
 	(data, targets, test_data, test_targets) = (dataset...,) |> active_device
 	n_train_samples = axes(data)[end][end]

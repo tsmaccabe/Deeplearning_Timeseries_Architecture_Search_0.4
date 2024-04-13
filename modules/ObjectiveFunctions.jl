@@ -16,7 +16,7 @@ function backprop_trials(architecture::Architecture, data::NTuple{4, Array{Float
 	losses_test = zeros(Float32, num_trials)
 	models = keep_models ? Vector{Chain}([]) : nothing
 	for trials_losses_index in 1:num_trials
-		println(Crayon(foreground = :red), "Architecture $(architecture.key) | Trial $(trials_losses_index)", Crayon(foreground = :default))
+		println(Crayon(foreground = :red), "Architecture $(values(architecture)) | Trial $(trials_losses_index)", Crayon(foreground = :default))
 		loss_test, _, model = train_sequence(architecture(), data, train_args, keep_models)
 		losses_test[trials_losses_index] = loss_test[end]
 		if keep_models push!(models, model) end
