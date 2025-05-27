@@ -1,6 +1,6 @@
 ## Deep Learning Timeseries Forecasting Hyperparameter Search
 
-A program for tuning the architecture of a neural network. Uses Simulated Annealing or Grid Search to find ideal architecture hyperparameters for a given deep neural network type. Intended for time series forecasting. Built in Julia on `Flux.jl`.
+A program for tuning the architecture of a neural network. Uses simulated annealing to find ideal architecture hyperparameters for a given deep neural network type. Intended for time series forecasting. Built in Julia on `Flux.jl`.
 
 (Includes data generation for the chaotic Lorenz system for testing.)
 
