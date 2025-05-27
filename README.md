@@ -7,10 +7,10 @@ A program for tuning the architecture of a neural network. Uses Simulated Anneal
 
 ## Instructions
 
-(For working examples, see `TEST_annealing()` within `Search.jl` and `lorenz_predict_test.jl`.)
+(For working examples, see `TEST_annealing()` within `Search.jl` and `lorenz_predict_test.jl`. These examples hardcode the configuration values rather than loading from `config.ini`, but the rest of the functionality is the same.)
 
 1. Prepare data.
-  - Define model input & output shapes. For single-channel data, these are `(num_nodes_in,)` and `(num_nodes_out,)`, and for multi-channel data, they are `(num_nodes_in, num_channels_in)` and `(num_nodes_out, num_channels_out)`.
+  - Define model input & output shapes. For single-channel data, these are `in_shape = (num_nodes_in,)` and `out_shape = (num_nodes_out,)`, and for multi-channel data, they are `in_shape = (num_nodes_in, num_channels_in)` and `out_shape = (num_nodes_out, num_channels_out)`.
   - Use `pair_data.jl` to create input-output pairs for forecasting.
   - Use `split_data.jl` to split it into a training set and a testing set.
      
@@ -28,7 +28,7 @@ A program for tuning the architecture of a neural network. Uses Simulated Anneal
   - Eg:
   ```
   architecture_type = (:fixed, [5, 10, 15], [5, 10, 15])
-  activation = [:relu, :sigmoid]
+  activation = (:relu, :sigmoid)
   ```
 
 4. Set the search settings in `config.ini` to define the behavior of the hyperparameter search algorithm (simulated annealing).
@@ -76,9 +76,12 @@ A program for tuning the architecture of a neural network. Uses Simulated Anneal
   regularization = (:l1, 0.1)
   ```
 
-6. Run `init_env.jl` to import the configuration variables.
+6. Run `init_env.jl` to import the configuration variables. This will automatically define the following objects:
+  - `RegularizationFunction` (`λ`), `LearnRateFunction` (`η`), `TrainStopFunction` (`train_stopper`), `SearchStopFunction` (`search_stopper`), `CoolingFunction` (`cooling`), `ShiftFunction` (`state_shift`), the appropriate `Flux.jl` loss function (`loss`), the objective function (`objective`), and finally a tuple of variables used later to define the `Architecture` object (`architecture_vars`).
 
-7. Use your input & output data settings and the configuration variables to define the following objects:
-   - `RegularizationFunction`
-   - 'LearnRateFunction'
-	train_stop = TrainStopFunction(:epochs_stagnant, 25)
+7. Use `architecture_vars` and your data input & output shapes (`in_shape` & `out_shape`) to define the architecture variable like this:
+  `architecture = Architecture(architecture_vars..., [in_shape], [out_shape])`
+
+9. Finally, to run the program, call the `annealing` function, and receive both the best cost value and the list of models searched, like this:
+  `best_cost, models = annealing(architecture, search_args, false)`
+  - The final argument is a boolean that determines whether the searched models are saved.
