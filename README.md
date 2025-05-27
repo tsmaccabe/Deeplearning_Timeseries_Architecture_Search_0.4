@@ -9,7 +9,7 @@ A program for tuning the architecture of a neural network. Uses simulated anneal
 
 (For working examples, see `TEST_annealing()` within `Search.jl` and `lorenz_predict_test.jl`. These examples hardcode the configuration values rather than loading from `config.ini`, but the rest of the functionality is the same.)
 
-1. Set your working directory to the project directory using `cd("<project directory>")`, and ensure you have all of the required packages by running `Pkg.instantiate()`.
+1. Set your working directory to the project directory using `cd("<project directory>")`, and ensure you have all of the dependencies by running `Pkg.instantiate()` or manually adding the dependencies in `project.toml`.
 
 2. Prepare data.
   - Define model input & output shapes. For single-channel data, these are `in_shape = (num_nodes_in,)` and `out_shape = (num_nodes_out,)`, and for multi-channel data, they are `in_shape = (num_nodes_in, num_channels_in)` and `out_shape = (num_nodes_out, num_channels_out)`.
