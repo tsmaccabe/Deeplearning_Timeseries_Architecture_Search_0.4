@@ -9,7 +9,9 @@ A program for tuning the architecture of a neural network. Uses Simulated Anneal
 
 (For working examples, see `TEST_annealing()` within `Search.jl` and `lorenz_predict_test.jl`. These examples hardcode the configuration values rather than loading from `config.ini`, but the rest of the functionality is the same.)
 
-1. Prepare data.
+1. Set your working directory to the project directory.
+
+2. Prepare data.
   - Define model input & output shapes. For single-channel data, these are `in_shape = (num_nodes_in,)` and `out_shape = (num_nodes_out,)`, and for multi-channel data, they are `in_shape = (num_nodes_in, num_channels_in)` and `out_shape = (num_nodes_out, num_channels_out)`.
   - Use `pair_data.jl` to create input-output pairs for forecasting.
   - Use `split_data.jl` to split it into a training set and a testing set.
