@@ -12,7 +12,7 @@ ini = read(Inifile(), config_file)
 architecture_type_str = get(ini, "Architecture Settings", "architecture_type")
 architecture_type = parse_tuple(architecture_type_str)
 activation_str = get(ini, "Architecture Settings", "activation")
-activation = Symbol(activation_str)
+activation = parse_tuple(activation_str)
 
 # Search Settings
 stop_condition_search_str = get(ini, "Search Settings", "stop_condition_search")
@@ -30,10 +30,34 @@ stop_condition_train = parse_tuple(stop_condition_train_str)
 learn_rate_str = get(ini, "Training Settings", "learn_rate")
 learn_rate = parse_tuple(learn_rate_str)
 loss_function_str = get(ini, "Training Settings", "loss_function")
-loss_function = Symbol(loss_function_str)
+loss_function_symbol = Symbol(loss_function_str)
 dropout_rate = parse(Float32, get(ini, "Training Settings", "dropout_rate"))
 regularization_str = get(ini, "Training Settings", "regularization")
 regularization = parse_tuple(regularization_str)
+
+# Use Configuration Data to Define Objects
+architecture_search_space = [architecture_type[2:end]..., [activation...]]
+architecture_vars = (architecture_search_space, [:length, :width, :activation], architecture_type[1])
+
+λ = RegularizationFunction(regularization...)
+η = LearnRateFunction(learn_rate...)
+loss = if loss_function_symbol == :mae
+    Flux.mae
+elseif loss_function_symbol == :mse
+    Flux.mse
+elseif loss_function_symbol == :cross_entropy
+    Flux.cross_entropy
+end
+train_stopper = TrainStopFunction(stop_condition_train...)
+search_stopper = SearchStopFunction(stop_condition_search...)
+cooling = CoolingFunction(cool_schedule...)
+state_shift = ShiftFunction(shift_settings...)
+
+dropout_rate = regularization[2]
+train_sequence = [TrainingArgs((num_samples, dropout_rate, loss, η, λ, train_stopper))]
+
+objective = backprop_objective_function(data, train_sequence, trials_per_state)
+
 
 println("Configuration")
 println("Architecture Type: ", architecture_type)
