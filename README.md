@@ -1,13 +1,13 @@
 ## Deep Learning Timeseries Forecasting Hyperparameter Search
 
-A program for tuning the hyperparameter values of a neural network. Uses Simulated Annealing or Grid Search to find ideal hyperparameters for a given deep neural network architecture. Intended for time series forecasting. Built in Julia on `Flux.jl`.
+A program for tuning the architecture of a neural network. Uses Simulated Annealing or Grid Search to find ideal architecture hyperparameters for a given deep neural network type. Intended for time series forecasting. Built in Julia on `Flux.jl`.
 
 (Includes data generation for the chaotic Lorenz system for testing.)
 
 
 ## Instructions
 
-(For a working example, see `lorenz_predict_test.jl`.)
+(For working examples, see `TEST_annealing()` within `Search.jl` and `lorenz_predict_test.jl`.)
 
 1. Prepare data.
   - Define model input & output shapes. For single-channel data, these are `(num_nodes_in,)` and `(num_nodes_out,)`, and for multi-channel data, they are `(num_nodes_in, num_channels_in)` and `(num_nodes_out, num_channels_out)`.
@@ -31,7 +31,7 @@ A program for tuning the hyperparameter values of a neural network. Uses Simulat
   activation = [:relu, :sigmoid]
   ```
 
-5. Set the hyperparameter search settings in `config.ini` to define the behavior of the hyperparameter search algorithm (simulated annealing).
+4. Set the search settings in `config.ini` to define the behavior of the hyperparameter search algorithm (simulated annealing).
   - Choose one value per variable.
   ```
   # Search Settings
@@ -52,5 +52,33 @@ A program for tuning the hyperparameter values of a neural network. Uses Simulat
   trials_per_state = 100
   ```
   
-6. 
+5. Set the training settings in `config.ini`, which are used to execute training for each iteration of the architecture hyperparameter search.
+  ```
+  # Training Settings
+  #   Legend
+  #       Stop Conditions   | (:max_epochs, <max_epochs>),
+  #                           (:epochs_stagnant, <epochs_stagnant>)
+  #       Learning Rate     | (:constant, <learn_rate>),
+  #                           (:exp, <init_rate>, <final_rate>, <final_rate_epoch>),
+  #                           (:linear, <init_rate>, <final_rate>, <final_rate_epoch>)
+  #       Loss Functions    | :mae, :mse, :cross_entropy
+  #       Dropout           | <dropout_rate>
+  #       Regularization    | :none,
+  #                           (:l1, <reg_scale>),
+  #                           (:l2, <reg_scale>)
+  ```
+  - Eg:
+  ```
+  stop_condition_train = (:max_epochs, 100)
+  loss_function = :mae
+  learn_rate = (:exp, 0.01, 0.002, 100)
+  dropout_rate = 0.2
+  regularization = (:l1, 0.1)
+  ```
 
+6. Run `init_env.jl` to import the configuration variables.
+
+7. Use your input & output data settings and the configuration variables to define the following objects:
+   - `RegularizationFunction`
+   - 'LearnRateFunction'
+	train_stop = TrainStopFunction(:epochs_stagnant, 25)
