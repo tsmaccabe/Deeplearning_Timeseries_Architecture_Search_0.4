@@ -78,8 +78,8 @@ A program for tuning the architecture of a neural network. Uses simulated anneal
   regularization = (:l1, 0.1)
   ```
 
-6. Run `init_env.jl` to import the configuration variables. This will automatically define the following objects:
-  - `RegularizationFunction` (`λ`), `LearnRateFunction` (`η`), `TrainStopFunction` (`train_stopper`), `SearchStopFunction` (`search_stopper`), `CoolingFunction` (`cooling`), `ShiftFunction` (`state_shift`), the appropriate `Flux.jl` loss function (`loss`), the objective function (`objective`), and finally a tuple of variables used later to define the `Architecture` object (`architecture_vars`).
+6. Run `init_env.jl` to import the configuration variables.
+  - This will automatically define the following objects: `RegularizationFunction` (`λ`), `LearnRateFunction` (`η`), `TrainStopFunction` (`train_stopper`), `SearchStopFunction` (`search_stopper`), `CoolingFunction` (`cooling`), `ShiftFunction` (`state_shift`), the appropriate `Flux.jl` loss function (`loss`), the objective function (`objective`), and finally a tuple of variables used later to define the `Architecture` object (`architecture_vars`).
 
 7. Use `architecture_vars` and your data input & output shapes (`in_shape` & `out_shape`) to define the architecture variable like this:
   `architecture = Architecture(architecture_vars..., [in_shape], [out_shape])`
