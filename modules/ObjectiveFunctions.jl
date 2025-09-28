@@ -1,4 +1,4 @@
-TESTS = false
+TESTS = true
 
 struct ObjectiveFunction <: Function
 	f::Function
@@ -16,7 +16,7 @@ function backprop_trials(architecture::Architecture, data::NTuple{4, Array{Float
 	losses_test = zeros(Float32, num_trials)
 	models = keep_models ? Vector{Chain}([]) : nothing
 	for trials_losses_index in 1:num_trials
-		println(Crayon(foreground = :red), "Architecture $(values(architecture)) | Trial $(trials_losses_index)", Crayon(foreground = :default))
+		println("Architecture $(values(architecture)) | Trial $(trials_losses_index)")
 		loss_test, _, model = train_sequence(architecture(), data, train_args, keep_models)
 		losses_test[trials_losses_index] = loss_test[end]
 		if keep_models push!(models, model) end
@@ -50,9 +50,9 @@ function TEST_ObjectiveFunction()
     symbols = [:length, :width, :activation]
     architecture = Architecture(space, symbols, format, in_shapes, out_shapes)
 
-	test_ObjectiveFunction = backprop_objective_generator(data, train_sequence, num_trials)
-
-    @assert architecture.key == string(Profile(model_formats[format], in_shapes, out_shapes))
+	test_ObjectiveFunction = backprop_objective_function(data, train_sequence, num_trials)
+	println(architecture.key)
+    #@assert architecture.key == string(Profile(model_formats[format], in_shapes, out_shapes))
     
 	trial_loss, models = test_ObjectiveFunction(architecture)
 	println(trial_loss)

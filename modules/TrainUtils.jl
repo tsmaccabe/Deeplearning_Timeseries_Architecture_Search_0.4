@@ -8,7 +8,7 @@ linear_decay(i::Integer, epochs::Integer, yi = 10.0f0^-3.0f0, yf = 10.0f0^-4.0f0
 exp_decay(i::Integer, epochs::Integer, yi = 10.0f0^-3.0f0, yf = 10.0f0^-4.0f0) = max((yi - yf) * exp((yf - yi) * i / epochs) + yf, yf)
 
 # Regularization functions
-#l1_regularization(layers, λ = 0.001f0) = λ * sum(abs, p) for p in Flux.params(layers)
+l1_regularization(layers, λ = 0.001f0) = λ * sum(sum(abs, p) for l in layers for p in Flux.params(l))
 l2_regularization(layers, λ = 0.0001f0) = λ * sum(sum(p .^ 2) for l in layers for p in Flux.params(l))
 
 # Stopper functions
@@ -93,13 +93,13 @@ struct TrainStopFunction <: Function
 end
 (stop::TrainStopFunction)(loss_t, loss_e) = stop.f(loss_t, loss_e, stop.epochs_parameter)
 
-TrainingArgs = @NamedTuple begin
+struct TrainingArgs
 	batch_size::Integer
 	drop_rate::Float32
 	loss::Function
-	η::LearnRateFunction
-	λ::RegularizationFunction
-	stop::TrainStopFunction
+	η::Function
+	λ::Function
+	stop::Function
 end
 
 function train_loop!(model::Chain, dataset::NTuple{4, Array{Float32}}, p_train::TrainingArgs; print_epochs::Integer = 50)
@@ -120,12 +120,12 @@ function train_loop!(model::Chain, dataset::NTuple{4, Array{Float32}}, p_train::
 	L_train = Float32[]
 	epoch = 0
 	best_test_loss = Inf32
-	best_params = nothing
+	best_model = nothing
 	train_loader = Flux.DataLoader((data, targets), batchsize = batch_size, shuffle = true)
 	test_loader = Flux.DataLoader((test_data, test_targets), batchsize = batch_size, shuffle = true)
 	while !stop(L_train, L_test)
 		epoch += 1
-		Optimisers.adjust!(opt, η(epoch))
+		#Optimisers.adjust!(opt, Float32(η(epoch)))
 
 		# Perform backpropagation
 		current_train_loss_gpu = 0.0f0
@@ -153,7 +153,7 @@ function train_loop!(model::Chain, dataset::NTuple{4, Array{Float32}}, p_train::
 
 		if current_test_loss < best_test_loss
 			best_test_loss = current_test_loss
-			best_params = Flux.params(model)
+			best_model = model
 		end
 		
 		if epoch % print_epochs == 0
@@ -167,8 +167,9 @@ function train_loop!(model::Chain, dataset::NTuple{4, Array{Float32}}, p_train::
 	formatted_output = @sprintf("Final Training Epoch = %d | Train Loss = %.6f, Test Loss = %.6f", epoch, L_train[end], L_test[end])
 	println(formatted_output, " | Training Time $(now() - init_time)")
 
-	if best_params !== nothing
-		Flux.loadparams!(model, best_params)
+	if best_model !== nothing
+		model = Flux.loadmodel!(model, best_model)
+		#Flux.loadparams!(model, best_params)
 	end
 
 	return L_test, L_train
@@ -187,6 +188,7 @@ function train_sequence_cpu!(model::Chain, data, subsequences::Vector{TrainingAr
 	model = keep_models ? model : nothing
 	return L_test, L_train, model
 end
+
 function train_sequence_gpu(model_cpu::Chain, data, subsequences::Vector{TrainingArgs}, keep_models::Bool = false)
 	# GPU model
 	L_test = []

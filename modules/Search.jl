@@ -1,4 +1,4 @@
-using Dates: now
+epochs_max_num = 100
 using Crayons
 
 TESTS = false
@@ -32,7 +32,7 @@ end
 (s::SearchStopFunction)(epoch::Integer) = s.f(epoch, s.epochs_parameter)
 
 CoolingArgs = @NamedTuple begin
-	max_epochs::Integer
+	epochs_max::Integer
 	init_temperature::Number
 	final_temperature::Number
 end
@@ -40,12 +40,12 @@ struct CoolingFunction <: Function
 	f::Function
 	args::CoolingArgs
 
-	function CoolingFunction(function_symbol::Symbol, max_epochs::Integer, init_temperature::Number, final_temperature::Number)
+	function CoolingFunction(function_symbol::Symbol, init_temperature::Number, final_temperature::Number, epochs_max::Integer)
 		cooling_f = cooling_schedule_functions[function_symbol]
-		return new(cooling_f, CoolingArgs((max_epochs, init_temperature, final_temperature)))
+		return new(cooling_f, CoolingArgs((epochs_max, init_temperature, final_temperature)))
 	end
 end
-(c::CoolingFunction)(epoch::Integer) = c.f(epoch, c.args.max_epochs, c.args.init_temperature, c.args.final_temperature)
+(c::CoolingFunction)(epoch::Integer) = c.f(epoch, c.args.epochs_max, c.args.init_temperature, c.args.final_temperature)
 
 
 SearchArgs = @NamedTuple begin

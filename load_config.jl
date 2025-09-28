@@ -40,6 +40,7 @@ architecture_search_space = [architecture_type[2:end]..., [activation...]]
 architecture_vars = (architecture_search_space, [:length, :width, :activation], architecture_type[1])
 
 λ = RegularizationFunction(regularization...)
+println(learn_rate)
 η = LearnRateFunction(learn_rate...)
 loss = if loss_function_symbol == :mae
     Flux.mae
@@ -49,14 +50,13 @@ elseif loss_function_symbol == :cross_entropy
     Flux.cross_entropy
 end
 train_stopper = TrainStopFunction(stop_condition_train...)
+println(stop_condition_train)
 search_stopper = SearchStopFunction(stop_condition_search...)
 cooling = CoolingFunction(cool_schedule...)
-state_shift = ShiftFunction(shift_settings...)
+numeric_dimensions = prod(prod(architecture_type[i]) for i in axes(architecture_type)[1][2:end])
+state_shift = ShiftFunction(numeric_dimensions, shift_settings[2])
 
 dropout_rate = regularization[2]
-train_sequence = [TrainingArgs((num_samples, dropout_rate, loss, η, λ, train_stopper))]
-
-objective = backprop_objective_function(data, train_sequence, trials_per_state)
 
 
 println("Configuration")

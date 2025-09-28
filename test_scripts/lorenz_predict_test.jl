@@ -25,7 +25,7 @@ function main()
 	train_stop = TrainStopFunction(:epochs_stagnant, 25)
 
     batch_size = 128
-    train_sequence = [TrainingArgs((batch_size, 0.1f0, loss, η, λ, train_stop)) for _ in 1:1]
+    train_sequence = [TrainingArgs(batch_size, 0.1f0, loss, η, λ, train_stop) for _ in 1:1]
     num_trials = 10
 
     format = :fixed
@@ -34,10 +34,10 @@ function main()
 
     architecture = Architecture(space, symbols, format, in_shapes, out_shapes)
     objective = backprop_objective_function(data, train_sequence, num_trials)
-    shift = ShiftFunction(length(space), Exponential(2.), 1.)
+    shift = ShiftFunction(length(space), 1.0f0)
 
 	search_stopper = SearchStopFunction(:epochs_max, 100)
-	cooling = CoolingFunction(:linear, 70, 0.5, 0.01)
+	cooling = CoolingFunction(:linear, 0.5f0, 0.01f0, 70)
 
     search_args = SearchArgs((objective, shift, search_stopper, cooling) )
         
