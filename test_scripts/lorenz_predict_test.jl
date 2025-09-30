@@ -26,7 +26,7 @@ function main()
 
     batch_size = 128
     train_sequence = [TrainingArgs(batch_size, 0.1f0, loss, η, λ, train_stop) for _ in 1:1]
-    num_trials = 10
+    num_trials = 1
 
     format = :fixed
     space = [collect(1:30), collect(1:30), [Flux.relu, Flux.leakyrelu]]
@@ -34,7 +34,7 @@ function main()
 
     architecture = Architecture(space, symbols, format, in_shapes, out_shapes)
     objective = backprop_objective_function(data, train_sequence, num_trials)
-    shift = ShiftFunction(length(space), 1.0f0)
+    shift = ShiftFunction(1)
 
 	search_stopper = SearchStopFunction(:epochs_max, 100)
 	cooling = CoolingFunction(:linear, 0.5f0, 0.01f0, 70)

@@ -1,7 +1,7 @@
 epochs_max_num = 100
 using Crayons
 
-TESTS = false
+TESTS = true
 
 # Cooling schedule functions
 linear_decay(i::Integer, epochs::Integer, yi = 10.0f0^-3.0f0, yf = 10.0f0^-4.0f0) = max(((yf - yi) / epochs) * i + yi, yf)
@@ -120,11 +120,11 @@ function TEST_annealing()
 
 	loss = Flux.mae
 
-	λ = RegularizationFunction(:l1, 0.1f0)
+	λ = RegularizationFunction(:l2, 0.1f0)
 	η = LearnRateFunction(:exp, 100, 0.01f0, 0.002f0)
 	train_stopper = TrainStopFunction(:epochs_max, 1)
 
-	train_sequence = [TrainingArgs((num_samples, 0.1f0, loss, η, λ, train_stopper)) for _ in 1:1]
+	train_sequence = [TrainingArgs(num_samples, 0.1f0, loss, η, λ, train_stopper) for _ in 1:1]
 	num_trials = 1
 
 	format = :fixed
@@ -133,10 +133,10 @@ function TEST_annealing()
 
 	architecture = Architecture(space, symbols, format, in_shapes, out_shapes)
 	objective = backprop_objective_function(data, train_sequence, num_trials)
-	shift = ShiftFunction(length(space), Exponential(1.0), 1.0)
+	shift = ShiftFunction(1)
 
 	search_stopper = SearchStopFunction(:epochs_max, 5)
-	cooling = CoolingFunction(:exp, 10, 0.5, 0.01)
+	cooling = CoolingFunction(:exp, 0.5, 0.01, 10)
 
 	search_args = SearchArgs((objective, shift, search_stopper, cooling))
 

@@ -25,26 +25,15 @@ function uniform_direction(n::Int)
 end
 
 struct ShiftFunction <: Function
-	decay::Distribution
-	direction::Function
-	radial_scale::Number
-    numeric_dimensions::Int
-	function ShiftFunction(numeric_dimensions::Int, radial_scale::Number)
-        radial_decay = Distributions.Exponential(radial_scale)
-		direction_fcn = () -> uniform_directions(numeric_dimensions, 1)
-		return new(radial_decay, direction_fcn, radial_scale, numeric_dimensions)
-	end
+	range::Integer
 end
-(shift_function::ShiftFunction)() :: Vector{T} where T = round.(Int, shift_function.radial_scale * rand(shift_function.decay) * uniform_directions(shift_function.numeric_dimensions, 1))[:, 1]
-#(shift_function::ShiftFunction)(parametrizers::Vector{Parametrizer}) = shift_function(length(parametrizers[1].index))
+(shift_function::ShiftFunction)(num_dimensions::Integer) :: Vector{T} where T = [rand(-shift_function.range:shift_function.range) for _ in 1:num_dimensions]
 function shift_indices!(shift_function::ShiftFunction, parametrizers::Vector{Parametrizer})
     shift = zeros(length(parametrizers))
     for parametrizer in parametrizers
-        shift = shift_function()
-        while all([elem == 0 for elem in shift])
-            shift = shift_function()
-        end
-        setindex!(parametrizer, parametrizer.index + shift_function())
+        shift = shift_function(length(parametrizer))
+        println("Shift: ", shift, ", indices before: ", parametrizer.index, ", indices after: ", mod.(parametrizer.index + shift, length(parametrizer)), ", length: ", length(parametrizer))
+        setindex!(parametrizer, mod.(parametrizer.index + shift, length(parametrizer)))
     end
     return shift
 end
@@ -54,7 +43,7 @@ function TEST_ShiftFunction(dimensions::Integer=15, num_parametrizers::Integer=5
     space = Vector{Vector}([collect(i^2:i^2+9) for i in 1:dimensions])
     parametrizers = [Parametrizer(space, syms) for _ in 1:num_parametrizers]
 
-    test_ShiftFunction = ShiftFunction(dimensions, 1)
+    test_ShiftFunction = ShiftFunction(0)
     shift_indices!(test_ShiftFunction, parametrizers)
 
     for _ in 1:10

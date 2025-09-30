@@ -41,6 +41,7 @@ function setindex!(architecture::Architecture, new_index::Vector{Int})
 end
 
 function shift_indices!(shift_function::ShiftFunction, architecture::Architecture)
+    println("shift_indices! : ", architecture.parameters)
     shift_indices!(shift_function, [architecture.parameters])
 end
 function shift_indices!(shift_function::ShiftFunction, architectures::Vector{Architecture})

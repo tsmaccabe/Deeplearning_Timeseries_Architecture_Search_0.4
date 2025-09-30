@@ -53,8 +53,8 @@ train_stopper = TrainStopFunction(stop_condition_train...)
 println(stop_condition_train)
 search_stopper = SearchStopFunction(stop_condition_search...)
 cooling = CoolingFunction(cool_schedule...)
-numeric_dimensions = prod(prod(architecture_type[i]) for i in axes(architecture_type)[1][2:end])
-state_shift = ShiftFunction(numeric_dimensions, shift_settings[2])
+numeric_dimensions = sum(length(param_set) for param_set in architecture_type[2:end]) + length(activation)
+state_shift = ShiftFunction(shift_settings[2])
 
 dropout_rate = regularization[2]
 
